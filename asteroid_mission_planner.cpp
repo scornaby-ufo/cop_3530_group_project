@@ -3,7 +3,9 @@
 #include<iostream>
 #include<vector>
 #include <random>
+#include <chrono>
 using namespace std;
+using namespace std::chrono;
 
 const int SCIENCE_MISSION = 1;
 const int MINING_MISSION = 2;
@@ -183,6 +185,8 @@ int main(){
 	int algorithmTypeChoice;
 	cin >> algorithmTypeChoice;
 	
+	system_clock::time_point startTime = system_clock::now();
+	
 	if(algorithmTypeChoice == QUICKSORT_ALGORITHM){
 		runQuickSort(missionTypeChoice, resultCount);
 	}
@@ -192,5 +196,9 @@ int main(){
 	else if(algorithmTypeChoice == HEAP_ALGORITHM){
 		runHeapAlgorithm(asteroids, missionTypeChoice, resultCount);
 	}
+	
+	system_clock::time_point endTime = system_clock::now();
+	
+	cout << "Algorithm took: " << duration_cast<milliseconds>(endTime - startTime).count() << " milliseconds" << endl;
 	
 }
