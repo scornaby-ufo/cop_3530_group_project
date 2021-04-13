@@ -15,6 +15,8 @@ const int QUICKSORT_ALGORITHM = 1;
 const int AVL_TREE_ALGORITHM = 2;
 const int HEAP_ALGORITHM = 3;
 
+const int APRIL_2021_MJD = 59320; //Number of days since November 17, 1858. Used as a base time in astronomy for historical purposes
+
 class Asteroid
 {
 	//Add useful entries from data file here, like name, size, etc...
@@ -39,12 +41,10 @@ void runTreeAlgorithm(int missionType, int resultCount){
 }
 
 void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCount){
-	cout << "Heap not implemented yet" << endl;
-	
 	default_random_engine generator;
 	uniform_real_distribution<double> distribution(0.0,1.0);
 	
-	AsteroidMissionRating asteroidHeap[resultCount];
+	AsteroidMissionRating* asteroidHeap = new AsteroidMissionRating[resultCount];
 	int heapSize = 0;
 	
 	for(Asteroid asteroid: asteroids){
@@ -108,9 +108,8 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 		
 	}
 	
-	
 	//Now extract and reverse the min heap to get the max N results
-	AsteroidMissionRating sortedResults[resultCount];
+	AsteroidMissionRating* sortedResults = new AsteroidMissionRating[resultCount];
 	int resultsSortedSoFar = 0;
 	
 	
@@ -119,7 +118,7 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 				sortedResults[resultCount - 1 - resultsSortedSoFar] = asteroidHeap[0];
 				resultsSortedSoFar++;
 				
-				AsteroidMissionRating newRoot = asteroidHeap[heapSize];
+				AsteroidMissionRating newRoot = asteroidHeap[heapSize-1];
 				asteroidHeap[0]=newRoot;
 				heapSize--;
 				int heapComparisonPoint = 0;
@@ -200,5 +199,6 @@ int main(){
 	system_clock::time_point endTime = system_clock::now();
 	
 	cout << "Algorithm took: " << duration_cast<milliseconds>(endTime - startTime).count() << " milliseconds" << endl;
+	return 0;
 	
 }
