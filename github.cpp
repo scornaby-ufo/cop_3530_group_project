@@ -1,0 +1,355 @@
+/*
+
+//COP 3530
+//Project 3: Asteroid Mission Planner
+#include<iostream>
+#include<fstream>
+#include<vector>
+#include <random>
+#include <chrono>
+#include<string>
+#include<cmath>
+using namespace std;
+using namespace std::chrono;
+
+#define PI 3.14159265
+#define DAYS_PER_YEAR 365.25636;
+
+const int SCIENCE_MISSION = 1;
+const int MINING_MISSION = 2;
+const int RANDOM_MISSION = 3;
+
+const int QUICKSORT_ALGORITHM = 1;
+const int AVL_TREE_ALGORITHM = 2;
+const int HEAP_ALGORITHM = 3;
+
+const int APRIL_2021_MJD = 59320; //Number of days since November 17, 1858. Used as a base time in astronomy for historical purposes
+
+class Asteroid
+{
+	//Add useful entries from data file here, like name, size, etc...
+public:
+	int id;
+	string name; //Official name of the asteroid
+	double a; //semi major axis of the asteroid's orbit
+	double e; //eccentricity of the asteroid's orbit
+	double i; //inclination of the asteroid's orbit
+	double om; //longitude of ascending node
+	double w; //argument of perihelion
+	double ma; //mean anomaly of the asteroid's orbit
+	double diameter; //Diameter of the asteroid
+	int epoch_mjd; //Modified julian date for the reference time the asteroids orbital data
+	double x; //x coordinate in sun centered coordinate system
+	double y; //y coordinate in sun centered coordinate system
+	double z; //z coordinate in sun centered coordinate system
+
+	void calculatePosition() {
+		double M = currentM(ma, a, epoch_mjd - APRIL_2021_MJD);
+		double E = eccentricAnomaly(M, e);
+		double v = approximateTrueAnomaly(M, e);
+		double r = helioDistance(a, e, v);
+		double theta = v + w;
+		double omRad = om * PI / 180;
+		double thetaRad = theta * PI / 180;
+		double iRad = i * PI / 180;
+
+		x = r * (cos(omRad) * cos(thetaRad) - sin(omRad) * sin(thetaRad) * cos(iRad));
+		y = r * (sin(omRad) * cos(thetaRad) + cos(omRad) * sin(thetaRad) * cos(iRad));
+		z = r * sin(thetaRad) * sin(iRad);
+
+	}
+
+private:
+	//Calculate the current anomaly of an asteroid based on how many days it has been since it's original reference
+	double currentM(double Mref, double a, int days) {
+		return Mref + 2 * PI / sqrt(pow(a, 3)) * (double)days / DAYS_PER_YEAR;
+	}
+	//Use newton's method to calculate a very good approximation of the eccentric anomaly of the asteroid's orbit
+	double eccentricAnomaly(double M, double e) {
+		double E = M;
+		double newE = (M - e * (E * cos(E * PI / 180) - sin(E * PI / 180))) / (1 - e * cos(E * PI / 180));
+		int count = 0;
+		while (count < 1000 && abs(newE - E) > .0001) {
+			E = newE;
+			newE = (M - e * (E * cos(E * PI / 180) - sin(E * PI / 180))) / (1 - e * cos(E * PI / 180));
+			count++;
+			if (count == 1000) {
+				cout << "WARNING: Non converging eccentric anomaly. Asteroid orbit prediction for " << name << " may be of low quality" << endl;
+			}
+		}
+
+		return newE;
+	}
+
+	//Use a fourier transform found on Wikipedia to find a close enough approximation of the orbit's true anomaly
+	double approximateTrueAnomaly(double M, double e) {
+		double radM = M * PI / 180;
+		return M + (2 * e - 1 / 4 * pow(e, 3)) * sin(radM)
+			+ 5 / 4 * pow(e, 2) * sin(2 * radM)
+			+ 13 / 12 * pow(e, 3) * sin(3 * M);
+	}
+
+	//Use the semi-major axis, the eccentricity and the calculated true anomaly of the asteroid to find the distance from the sun
+	double helioDistance(double a, double e, double v) {
+		return a * (1 - pow(e, 2)) / (1 + e * cos(v * PI / 180));
+	}
+
+};
+
+class AsteroidNeighborTreeNode {
+	Asteroid asteroid;
+	AsteroidNeighborTreeNode* leftChild;
+	AsteroidNeighborTreeNode* rightChild;
+};
+
+class AsteroidMissionRating
+{
+public:
+	Asteroid asteroid;
+	double missionRating;
+};
+
+void runQuickSort(int missionType, int resultCount) {
+	cout << "Quicksort not implemented yet" << endl;
+}
+
+void runTreeAlgorithm(int missionType, int resultCount) {
+	cout << "Tree not implemented yet" << endl;
+}
+
+void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCount) {
+	default_random_engine generator;
+	uniform_real_distribution<double> distribution(0.0, 1.0);
+
+	AsteroidMissionRating* asteroidHeap = new AsteroidMissionRating[resultCount];
+	int heapSize = 0;
+
+	for (Asteroid asteroid : asteroids) {
+		AsteroidMissionRating newRatedAsteroid;
+		newRatedAsteroid.asteroid = asteroid;
+		if (missionType == RANDOM_MISSION) {
+			newRatedAsteroid.missionRating = distribution(generator);
+		}
+
+		//Sort into heap
+
+		//If the heap is not yet full, insert and bubble up
+		if (heapSize < resultCount) {
+			asteroidHeap[heapSize] = newRatedAsteroid;
+
+			int currentHeapPoint = heapSize;
+			while (true) {
+				//We have reached the top of the heap, time to exit the loop
+				if (currentHeapPoint == 0) {
+					heapSize++;
+					break;
+				}
+				int heapComparisonPoint = currentHeapPoint % 2 == 1 ? (currentHeapPoint - 1) / 2 : (currentHeapPoint - 2) / 2;
+				if (asteroidHeap[heapComparisonPoint].missionRating > newRatedAsteroid.missionRating) {
+					AsteroidMissionRating temp = asteroidHeap[heapComparisonPoint];
+					asteroidHeap[heapComparisonPoint] = newRatedAsteroid;
+					asteroidHeap[currentHeapPoint] = temp;
+					currentHeapPoint = heapComparisonPoint;
+				}
+				else {
+					heapSize++;
+					break;
+				}
+			}
+		}
+		else { //If the heap is full, see if the new value is better than the current min
+			if (newRatedAsteroid.missionRating > asteroidHeap[0].missionRating) {
+				//Swap the value into the "min" slot and bubble it down as needed
+				asteroidHeap[0] = newRatedAsteroid;
+				int heapComparisonPoint = 0;
+				while (heapComparisonPoint * 2 + 2 <= heapSize) {
+					AsteroidMissionRating leftChild = asteroidHeap[heapComparisonPoint * 2 + 1];
+					if (heapComparisonPoint * 2 + 2 == heapSize) {
+						if (newRatedAsteroid.missionRating < leftChild.missionRating)
+							break;
+						else {
+							asteroidHeap[heapComparisonPoint] = leftChild;
+							asteroidHeap[heapComparisonPoint * 2 + 1] = newRatedAsteroid;
+							heapComparisonPoint = heapComparisonPoint * 2 + 1;
+						}
+					}
+					else {
+						AsteroidMissionRating rightChild = asteroidHeap[heapComparisonPoint * 2 + 2];
+						if (newRatedAsteroid.missionRating < leftChild.missionRating && newRatedAsteroid.missionRating < rightChild.missionRating) {
+							break;
+						}
+						else if (leftChild.missionRating < rightChild.missionRating) {
+							asteroidHeap[heapComparisonPoint] = leftChild;
+							asteroidHeap[heapComparisonPoint * 2 + 1] = newRatedAsteroid;
+							heapComparisonPoint = heapComparisonPoint * 2 + 1;
+						}
+						else {
+							asteroidHeap[heapComparisonPoint] = rightChild;
+							asteroidHeap[heapComparisonPoint * 2 + 2] = newRatedAsteroid;
+							heapComparisonPoint = heapComparisonPoint * 2 + 2;
+						}
+					}
+				}
+			}
+		}
+
+
+	}
+
+	//Now extract and reverse the min heap to get the max N results
+	AsteroidMissionRating* sortedResults = new AsteroidMissionRating[resultCount];
+	int resultsSortedSoFar = 0;
+
+
+	while (heapSize > 0) {
+		//Get minimum match from front of heap, swap in last value, resort heap
+		sortedResults[resultCount - 1 - resultsSortedSoFar] = asteroidHeap[0];
+		resultsSortedSoFar++;
+
+		AsteroidMissionRating newRoot = asteroidHeap[heapSize - 1];
+		asteroidHeap[0] = newRoot;
+		heapSize--;
+		int heapComparisonPoint = 0;
+		while (heapComparisonPoint * 2 + 2 <= heapSize) {
+			AsteroidMissionRating leftChild = asteroidHeap[heapComparisonPoint * 2 + 1];
+			AsteroidMissionRating rightChild = asteroidHeap[heapComparisonPoint * 2 + 2];
+			if (newRoot.missionRating < leftChild.missionRating && newRoot.missionRating < rightChild.missionRating) {
+				break;
+			}
+			else if (leftChild.missionRating < rightChild.missionRating) {
+				asteroidHeap[heapComparisonPoint] = leftChild;
+				asteroidHeap[heapComparisonPoint * 2 + 1] = newRoot;
+				heapComparisonPoint = heapComparisonPoint * 2 + 1;
+			}
+			else {
+				asteroidHeap[heapComparisonPoint] = rightChild;
+				asteroidHeap[heapComparisonPoint * 2 + 2] = newRoot;
+				heapComparisonPoint = heapComparisonPoint * 2 + 2;
+			}
+		}
+	}
+
+	cout << "Sorted results" << endl;
+	cout << "Asteroid Official Name : Calculated Mission Value" << endl;
+	for (int i = 0; i < resultCount; i++) {
+		cout << sortedResults[i].asteroid.name << " : " << sortedResults[i].missionRating << endl;
+	}
+
+
+
+}
+
+int main() {
+	cout << "Loading asteroid data..." << endl;
+
+	//Asteroid import code goes here
+	vector<Asteroid> asteroids;
+
+	ifstream asteroidReader("asteroids_all.csv");
+	if (!asteroidReader.is_open()) {
+		cout << "Error opening data file" << endl;
+		return 0;
+	}
+
+	string line;
+	getline(asteroidReader, line); //Read and discard the header line
+	int count = 0;
+	cout << "Loading asteroid data and computing orbits..." << endl;
+	while (getline(asteroidReader, line))
+	{
+		string fields[32];
+		//First field is the only quoted, non-numeric field so treat it differently
+		int nextPos = line.find("\",");
+		fields[0] = line.substr(1, nextPos - 1);
+
+
+		//Everything else is a number, so we can predictably loop through them
+		int prevPos = nextPos + 2;
+		int fieldCount = 1;
+		while (true) {
+			nextPos = line.find(',', prevPos);
+			if (nextPos > 0) {
+				fields[fieldCount] = line.substr(prevPos, nextPos - prevPos);
+			}
+			else {
+				fields[fieldCount] = line.substr(prevPos);
+				break;
+			}
+
+			fieldCount++;
+			prevPos = nextPos + 1;
+		}
+
+		//Now create an asteroid from this
+		Asteroid asteroid;
+		asteroid.id = count + 2; //Track line number from original file
+		asteroid.name = fields[0];
+		asteroid.a = stod(fields[1]);
+		asteroid.e = stod(fields[2]);
+		asteroid.i = stod(fields[3]);
+		asteroid.om = stod(fields[4]);
+		asteroid.w = stod(fields[5]);
+		asteroid.ma = stod(fields[31]);
+		asteroid.epoch_mjd = stoi(fields[25]);
+		//asteroid.diameter = stod(fields[15]);
+
+		asteroid.calculatePosition();
+
+		asteroids.push_back(asteroid);
+
+		count++;
+		if (count % 10000 == 0) {
+			cout << count << " asteroids loaded..." << endl;
+		}
+		if (count == 10000) {
+			break;
+		}
+	}
+	asteroidReader.close();
+
+	cout << "Asteroids loaded and orbital locations computed!" << endl;
+
+
+
+	cout << "Choose your mission criteria" << endl;
+	cout << "\t1) Science Mission: Asteroids with near neighbors" << endl;
+	cout << "\t2) Mining Mission: Large, metal rich easy to land on asteroids" << endl;
+	cout << "\t3) Random Mission: Assign asteroids a random mission value" << endl;
+
+	int missionTypeChoice;
+	cin >> missionTypeChoice;
+
+
+
+	cout << "How many results do you want? [1 to 600,000]" << endl;
+
+	int resultCount;
+	cin >> resultCount;
+
+	cout << "Choose algorithm for sorting results" << endl;
+	cout << "\t1)Quicksort" << endl;
+	cout << "\t2)AVL Tree" << endl;
+	cout << "\t3)Heap" << endl;
+
+	int algorithmTypeChoice;
+	cin >> algorithmTypeChoice;
+
+	system_clock::time_point startTime = system_clock::now();
+
+	if (algorithmTypeChoice == QUICKSORT_ALGORITHM) {
+		runQuickSort(missionTypeChoice, resultCount);
+	}
+	else if (algorithmTypeChoice == AVL_TREE_ALGORITHM) {
+		runTreeAlgorithm(missionTypeChoice, resultCount);
+	}
+	else if (algorithmTypeChoice == HEAP_ALGORITHM) {
+		runHeapAlgorithm(asteroids, missionTypeChoice, resultCount);
+	}
+
+	system_clock::time_point endTime = system_clock::now();
+
+	cout << "Algorithm took: " << duration_cast<milliseconds>(endTime - startTime).count() << " milliseconds" << endl;
+	return 0;
+
+}
+*/
