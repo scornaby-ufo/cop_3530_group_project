@@ -7,6 +7,7 @@
 #include <chrono>
 #include<string>
 #include<cmath>
+#include<iomanip>
 using namespace std;
 using namespace std::chrono;
 
@@ -40,6 +41,7 @@ class Asteroid
 		double x; //x coordinate in sun centered coordinate system
 		double y; //y coordinate in sun centered coordinate system
 		double z; //z coordinate in sun centered coordinate system
+		double missionRating;
 
 		void calculatePosition() {
 			double M = currentM(ma, a, epoch_mjd - APRIL_2021_MJD);
@@ -100,40 +102,72 @@ class AsteroidNeighborTreeNode {
 	AsteroidNeighborTreeNode* rightChild;
 };
 
-class AsteroidMissionRating
-{
-	public:
-		Asteroid asteroid;
-		double missionRating;
-};
+void rateAsteroids(vector<Asteroid>& asteroids, int missionType) {
 
-void runQuickSort(int missionType, int resultCount){
-	cout << "Quicksort not implemented yet" << endl;
+	unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+	default_random_engine generator(seed);
+	uniform_real_distribution<double> distribution(0.0, 1.0);
+
+	if (missionType == RANDOM_MISSION) {
+		for (int i = 0; i < asteroids.size(); i++) {
+			asteroids[i].missionRating = distribution(generator);
+		}
+		return;
+	}
+	if (missionType == SCIENCE_MISSION) {
+		cout << " Science Mission rating system not implemented" << endl;
+		return;
+	}
+	if (missionType == MINING_MISSION) {
+		cout << " Mining Mission rating system not implemented" << endl;
+		return;
+	}
+}
+
+void runQuickSort(vector<Asteroid>& asteroids, int l, int r) {
+	if (r - l == 1) {
+		if (asteroids[l].missionRating > asteroids[r].missionRating) {
+			swap(asteroids[l], asteroids[r]);
+		}
+		return;
+	}
+	int p = (r + l) / 2;
+	int begin = l;
+	int end = r;
+
+	swap(asteroids[p], asteroids[r]);
+	p = r;
+
+	while (l <= r) {
+		while ((asteroids[l].missionRating < asteroids[p].missionRating)) { l++; }
+		while ((r >= l) && (asteroids[r].missionRating >= asteroids[p].missionRating)) { r--; }
+		if (r > l) {
+			swap(asteroids[l], asteroids[r]);
+		}
+	}
+	swap(asteroids[p], asteroids[l]);
+
+	//	p = l;
+	if ((l - begin) > 1) { runQuickSort(asteroids, begin, l - 1); }
+	if ((end - l) > 1) { runQuickSort(asteroids, l + 1, end); }
+	return;
 }
 
 void runTreeAlgorithm(int missionType, int resultCount){
 	cout << "Tree not implemented yet" << endl;
 }
 
-void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCount){
-	default_random_engine generator;
-	uniform_real_distribution<double> distribution(0.0,1.0);
+void runHeapAlgorithm(vector<Asteroid>& asteroids, int resultCount){
 	
-	AsteroidMissionRating* asteroidHeap = new AsteroidMissionRating[resultCount];
+	Asteroid* asteroidHeap = new Asteroid[resultCount];
 	int heapSize = 0;
 	
-	for(Asteroid asteroid: asteroids){
-		AsteroidMissionRating newRatedAsteroid;
-		newRatedAsteroid.asteroid = asteroid;
-		if(missionType == RANDOM_MISSION){
-			newRatedAsteroid.missionRating = distribution(generator);
-		}
-		
+	for(Asteroid& asteroid: asteroids){
 		//Sort into heap
 		
 		//If the heap is not yet full, insert and bubble up
 		if(heapSize < resultCount){
-			asteroidHeap[heapSize]=newRatedAsteroid;
+			asteroidHeap[heapSize]=asteroid;
 
 			int currentHeapPoint = heapSize;
 			while(true){
@@ -143,9 +177,9 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 					break;
 				}
 				int heapComparisonPoint = currentHeapPoint % 2 == 1 ? (currentHeapPoint - 1)/2 : (currentHeapPoint - 2) /2;
-				if(asteroidHeap[heapComparisonPoint].missionRating > newRatedAsteroid.missionRating){
-					AsteroidMissionRating temp = asteroidHeap[heapComparisonPoint];
-					asteroidHeap[heapComparisonPoint] = newRatedAsteroid;
+				if(asteroidHeap[heapComparisonPoint].missionRating > asteroid.missionRating){
+					Asteroid temp = asteroidHeap[heapComparisonPoint];
+					asteroidHeap[heapComparisonPoint] = asteroid;
 					asteroidHeap[currentHeapPoint] = temp;
 					currentHeapPoint = heapComparisonPoint;
 				}
@@ -156,34 +190,34 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 			}
 		}
 		else{ //If the heap is full, see if the new value is better than the current min
-			if(newRatedAsteroid.missionRating > asteroidHeap[0].missionRating){
+			if(asteroid.missionRating > asteroidHeap[0].missionRating){
 				//Swap the value into the "min" slot and bubble it down as needed
-				asteroidHeap[0]=newRatedAsteroid;
+				asteroidHeap[0]=asteroid;
 				int heapComparisonPoint = 0;
 				while(heapComparisonPoint * 2 + 2 <= heapSize){
-					AsteroidMissionRating leftChild = asteroidHeap[heapComparisonPoint * 2 + 1];
+					Asteroid leftChild = asteroidHeap[heapComparisonPoint * 2 + 1];
 					if (heapComparisonPoint * 2 + 2 == heapSize) {
-						if (newRatedAsteroid.missionRating < leftChild.missionRating)
+						if (asteroid.missionRating < leftChild.missionRating)
 							break;
 						else {
 							asteroidHeap[heapComparisonPoint] = leftChild;
-							asteroidHeap[heapComparisonPoint * 2 + 1] = newRatedAsteroid;
+							asteroidHeap[heapComparisonPoint * 2 + 1] = asteroid;
 							heapComparisonPoint = heapComparisonPoint * 2 + 1;
 						}
 					}
 					else {
-						AsteroidMissionRating rightChild = asteroidHeap[heapComparisonPoint * 2 + 2];
-						if (newRatedAsteroid.missionRating < leftChild.missionRating && newRatedAsteroid.missionRating < rightChild.missionRating) {
+						Asteroid rightChild = asteroidHeap[heapComparisonPoint * 2 + 2];
+						if (asteroid.missionRating < leftChild.missionRating && asteroid.missionRating < rightChild.missionRating) {
 							break;
 						}
 						else if (leftChild.missionRating < rightChild.missionRating) {
 							asteroidHeap[heapComparisonPoint] = leftChild;
-							asteroidHeap[heapComparisonPoint * 2 + 1] = newRatedAsteroid;
+							asteroidHeap[heapComparisonPoint * 2 + 1] = asteroid;
 							heapComparisonPoint = heapComparisonPoint * 2 + 1;
 						}
 						else {
 							asteroidHeap[heapComparisonPoint] = rightChild;
-							asteroidHeap[heapComparisonPoint * 2 + 2] = newRatedAsteroid;
+							asteroidHeap[heapComparisonPoint * 2 + 2] = asteroid;
 							heapComparisonPoint = heapComparisonPoint * 2 + 2;
 						}
 					}
@@ -195,7 +229,7 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 	}
 	
 	//Now extract and reverse the min heap to get the max N results
-	AsteroidMissionRating* sortedResults = new AsteroidMissionRating[resultCount];
+	Asteroid* sortedResults = new Asteroid[resultCount];
 	int resultsSortedSoFar = 0;
 	
 	
@@ -204,13 +238,13 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 				sortedResults[resultCount - 1 - resultsSortedSoFar] = asteroidHeap[0];
 				resultsSortedSoFar++;
 				
-				AsteroidMissionRating newRoot = asteroidHeap[heapSize-1];
+				Asteroid newRoot = asteroidHeap[heapSize-1];
 				asteroidHeap[0]=newRoot;
 				heapSize--;
 				int heapComparisonPoint = 0;
 				while(heapComparisonPoint * 2 + 2 <= heapSize){
-					AsteroidMissionRating leftChild = asteroidHeap[heapComparisonPoint * 2 + 1];
-					AsteroidMissionRating rightChild = asteroidHeap[heapComparisonPoint * 2 + 2];
+					Asteroid leftChild = asteroidHeap[heapComparisonPoint * 2 + 1];
+					Asteroid rightChild = asteroidHeap[heapComparisonPoint * 2 + 2];
 					if(newRoot.missionRating < leftChild.missionRating && newRoot.missionRating < rightChild.missionRating){
 						break;
 					}
@@ -230,7 +264,7 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int missionType, int resultCo
 	cout << "Sorted results" << endl;
 	cout << "Asteroid Official Name : Calculated Mission Value" << endl;
 	for(int i = 0; i < resultCount; i++){
-		cout << sortedResults[i].asteroid.name << " : " << sortedResults[i].missionRating << endl;
+		cout << sortedResults[i].name << " : " << sortedResults[i].missionRating << endl;
 	}
 	
 
@@ -322,7 +356,7 @@ int main(){
 	
 	int missionTypeChoice;
 	cin >> missionTypeChoice;
-	
+	rateAsteroids(asteroids, missionTypeChoice);
 
 
 	cout << "How many results do you want? [1 to 600,000]" << endl;
@@ -340,14 +374,20 @@ int main(){
 	
 	system_clock::time_point startTime = system_clock::now();
 	
-	if(algorithmTypeChoice == QUICKSORT_ALGORITHM){
-		runQuickSort(missionTypeChoice, resultCount);
+	if (algorithmTypeChoice == QUICKSORT_ALGORITHM) {
+		runQuickSort(asteroids, 0, asteroids.size() - 1);
+		cout << "Sorted results" << endl;
+		int lastAsteroid = asteroids.size() - 1;
+		for (int i = 0; i < resultCount; i++) {
+			cout  << asteroids[lastAsteroid - i].name << " : " << asteroids[lastAsteroid - i].missionRating << endl;
+		}
+
 	}
 	else if(algorithmTypeChoice == AVL_TREE_ALGORITHM){
 		runTreeAlgorithm(missionTypeChoice, resultCount);
 	}
 	else if(algorithmTypeChoice == HEAP_ALGORITHM){
-		runHeapAlgorithm(asteroids, missionTypeChoice, resultCount);
+		runHeapAlgorithm(asteroids, resultCount);
 	}
 	
 	system_clock::time_point endTime = system_clock::now();
