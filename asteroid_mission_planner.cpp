@@ -23,6 +23,8 @@ const int AVL_TREE_ALGORITHM = 2;
 const int HEAP_ALGORITHM = 3;
 
 const int APRIL_2021_MJD = 59320; //Number of days since November 17, 1858. Used as a base time in astronomy for historical purposes
+const double MAX_NEIGHBOR_DISTANCE = .01; //How many astronomical units apart can two asteroids be while still being considered "near neighbors" for purpose of a mission?
+const double MAX_NEIGHBOR_DISTANCE_SQUARED = pow(MAX_NEIGHBOR_DISTANCE, 2); //Comparing distances can be made slightly faster in some cases by comparing squares and thus avoiding multiple square roots
 
 class Asteroid
 {
@@ -36,7 +38,7 @@ class Asteroid
 		double om; //longitude of ascending node
 		double w; //argument of perihelion
 		double ma; //mean anomaly of the asteroid's orbit
-		double diameter; //Diameter of the asteroid
+		double magnitude; //Observed visual size of the asteroid, known more often than actual size
 		int epoch_mjd; //Modified julian date for the reference time the asteroids orbital data
 		double x; //x coordinate in sun centered coordinate system
 		double y; //y coordinate in sun centered coordinate system
@@ -97,10 +99,60 @@ class Asteroid
 };
 
 class AsteroidNeighborTreeNode {
-	Asteroid asteroid;
-	AsteroidNeighborTreeNode* leftChild;
-	AsteroidNeighborTreeNode* rightChild;
+	public:
+		Asteroid asteroid;
+		AsteroidNeighborTreeNode* leftChild;
+		AsteroidNeighborTreeNode* rightChild;
 };
+
+AsteroidNeighborTreeNode* addAsteroidNeighborTreeNode(AsteroidNeighborTreeNode* root, Asteroid asteroid) {
+	if (root == nullptr) {
+		AsteroidNeighborTreeNode* newNode = new AsteroidNeighborTreeNode();
+		newNode->asteroid = asteroid;
+		return newNode;
+	}
+	else {
+		if (asteroid.x <= root->asteroid.x) {
+			root->leftChild = addAsteroidNeighborTreeNode(root->leftChild, asteroid);
+		}
+		else {
+			root->rightChild = addAsteroidNeighborTreeNode(root->rightChild, asteroid);
+		}
+		return root;
+	}
+
+}
+
+int countNearNeighbors(AsteroidNeighborTreeNode* node, Asteroid asteroid) {
+	if (node == nullptr)
+		return 0;
+
+	//Assume asteroid is too far away for eithr of its children nodes to be worth exploring
+	int leftChildCount = 0;
+	int rightChildCount = 0;
+
+	//If the asteroid is within MAX_NEIGHBOR_DISTANCE to the left then it's left childe might also be a nieghbor. Recurse!
+	if (node->asteroid.x >= asteroid.x - MAX_NEIGHBOR_DISTANCE) {
+		leftChildCount = countNearNeighbors(node->leftChild, asteroid);
+	}
+	
+	//If the asteroid is within MAX_NEIGHBOR_DISTANCE to the right then it's right child might also be a neighbor. Recurse!
+	if (node->asteroid.x <= asteroid.x + MAX_NEIGHBOR_DISTANCE) {
+		rightChildCount = countNearNeighbors(node->rightChild, asteroid);
+	}
+
+	if (node->asteroid.id == asteroid.id) {
+		return leftChildCount + rightChildCount;
+	}
+	else {
+		if (pow(node->asteroid.x - asteroid.x, 2) + pow(node->asteroid.y - asteroid.y, 2) + pow(node->asteroid.z - asteroid.z, 2) <= MAX_NEIGHBOR_DISTANCE_SQUARED) {
+			return leftChildCount + rightChildCount + 1;
+		}
+		else {
+			return leftChildCount + rightChildCount;
+		}
+	}
+}
 
 void rateAsteroids(vector<Asteroid>& asteroids, int missionType) {
 
@@ -114,12 +166,38 @@ void rateAsteroids(vector<Asteroid>& asteroids, int missionType) {
 		}
 		return;
 	}
+	//Calculate how many other asteroids are near neighbors, allowing a single mission to take pictures of multiple objects
 	if (missionType == SCIENCE_MISSION) {
-		cout << " Science Mission rating system not implemented" << endl;
+
+		system_clock::time_point startTime = system_clock::now();
+		cout << " Calculating near neighbors for asteroids..." << endl;
+		
+		//Comparing every asteroid to every asteroid to find neighbors is N^2 run time and not realistic for a million asteroids
+		//Sort asteroids into a tree first so we can more efficiently look at only asteroids that are within a reasonable X distance of ourselvevs
+		AsteroidNeighborTreeNode* neighborTree = nullptr;
+		for (Asteroid asteroid : asteroids) {
+			neighborTree = addAsteroidNeighborTreeNode(neighborTree, asteroid);
+		}
+		//Now find neighbor count
+		cout << "Done creating near neighbor tree" << endl;
+		cout << "Use tree to calculate near neighbors" << endl;
+		for (int i = 0; i < asteroids.size(); i++) {
+			asteroids[i].missionRating = (double)countNearNeighbors(neighborTree, asteroids[i]);
+			if ((i+1) % 10000 == 0) {
+				cout << "Near neighbors calculated for " << i + 1 << " asteroids..." << endl;
+			}
+		}
+		cout << "All near neighbor counts calculated" << endl;
+		system_clock::time_point endTime = system_clock::now();
+
+		cout << "Calculating near neighbors took: " << duration_cast<milliseconds>(endTime - startTime).count() << " milliseconds" << endl;
 		return;
 	}
+	//Detect large magnitude asteroids (easy to land on) divided by how far away it is from the earths average raidus of 1 au
 	if (missionType == MINING_MISSION) {
-		cout << " Mining Mission rating system not implemented" << endl;
+		for (int i = 0; i < asteroids.size(); i++) {
+			asteroids[i].missionRating = asteroids[i].magnitude/(sqrt(pow(asteroids[i].x,2)+pow(asteroids[i].y,2)+pow(asteroids[i].z,2))-1);
+		}
 		return;
 	}
 }
@@ -163,8 +241,7 @@ void runHeapAlgorithm(vector<Asteroid>& asteroids, int resultCount){
 	int heapSize = 0;
 	
 	for(Asteroid& asteroid: asteroids){
-		//Sort into heap
-		
+		//Sort into heap		
 		//If the heap is not yet full, insert and bubble up
 		if(heapSize < resultCount){
 			asteroidHeap[heapSize]=asteroid;
@@ -323,7 +400,7 @@ int main(){
 		asteroid.w = stod(fields[5]);
 		asteroid.ma = stod(fields[31]);
 		asteroid.epoch_mjd = stoi(fields[25]);
-		//asteroid.diameter = stod(fields[15]);
+		asteroid.magnitude = fields[14] != "" ? stod(fields[14]) : 0.0;
 
 		asteroid.calculatePosition();
 
@@ -333,8 +410,8 @@ int main(){
 		if (count % 10000 == 0) {
 			cout << count << " asteroids loaded..." << endl;
 		}
-		if (count == 10000) {
-			break;
+		if (count == 100000) {
+		//	break;
 		}
 	}
 	asteroidReader.close();
