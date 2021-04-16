@@ -411,7 +411,7 @@ int main(){
 			cout << count << " asteroids loaded..." << endl;
 		}
 		if (count == 100000) {
-			break;
+		//	break;
 		}
 	}
 	asteroidReader.close();
