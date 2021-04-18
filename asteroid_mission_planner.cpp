@@ -161,7 +161,7 @@ public:
     AVLT * inOrderSuccessor(AVLT * );
     
     // Tree Traversal - visits nodes with asteroid mission ratings from smallest to largest
-    void inOrderTraversal(AVLT *, vector<pair<double, string>>& values);
+    void inOrderTraversal(AVLT* tree, int& counter, int result, bool& foundAllValues);
 
     // Tree Rotations
     AVLT * rightRightRotation(AVLT * );
@@ -280,13 +280,24 @@ AVLT* AVLTree::inOrderSuccessor(AVLT* treeNode) {
     }
 }
 
-void AVLTree::inOrderTraversal(AVLT* tree, vector<pair<double, string>>& values) {
+void AVLTree::inOrderTraversal(AVLT* tree, int& counter, int result, bool& foundAllValues) {
+    if(foundAllValues) {
+        return;
+    }
     if (tree == nullptr) {
         return;
     }
-    inOrderTraversal(tree->left, values);
-    values.push_back(make_pair(tree->missionRating,tree->name));
-    inOrderTraversal(tree->right, values);
+    inOrderTraversal(tree->right, counter, result, foundAllValues);
+    if(foundAllValues) {
+        return;
+    }
+    cout << tree->name << " " << tree->missionRating << endl;
+    counter += 1;
+    if(counter == result) {
+        foundAllValues = true;
+        return;
+    }
+    inOrderTraversal(tree->left, counter, result, foundAllValues);
 }
 
 void countNearNeighbors(Asteroid* node, Asteroid& asteroid) {
@@ -387,8 +398,23 @@ void runQuickSort(vector<Asteroid>& asteroids, int l, int r) {
 	return;
 }
 
-void runTreeAlgorithm(int missionType, int resultCount){
-	cout << "Tree not implemented yet" << endl;
+void runTreeAlgorithm(vector<Asteroid>& asteroids, int resultCount) {
+    if(resultCount == 0) {
+        return;
+    }
+    // declare AVLTree data structure to hold asteroids
+    AVLTree avl;
+    // create root node
+    AVLT* rootNode = new AVLT();
+    rootNode->missionRating = asteroids.at(0).missionRating;
+    rootNode->name = asteroids.at(0).name;
+    // loop through asteroids vector and add 'resultCount' number of asteroids to the avlTree
+    for(int i = 1; i < asteroids.size(); i++) {
+        avl.insertNode(rootNode, &asteroids.at(i));
+    }
+    int current = 0;
+    bool foundValues = false;
+    avl.inOrderTraversal(rootNode, current, resultCount, foundValues);
 }
 
 void runHeapAlgorithm(vector<Asteroid>& asteroids, int resultCount){
