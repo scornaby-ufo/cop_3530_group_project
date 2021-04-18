@@ -113,6 +113,40 @@ struct AVLT {
     struct AVLT* right;
 };
 
+// declare AVLT structure 
+AVLT * tree;
+
+// AVL tree class with methods that enable asteroids to be sorted by their mission rating 
+class AVLTree {
+public:
+    // Constructor
+    AVLTree() {
+        tree = NULL;
+    }
+
+    // Getters
+    int getHeight(AVLT * );
+    int getBalanceFactor(AVLT * );
+	
+    // Balance the tree after a node(asteroid) insertion 
+    AVLT * balanceTree(AVLT * );
+ 
+    // Insert Node
+    void insertNode(AVLT*, Asteroid *);
+    
+    // Find In-Order Successor
+    AVLT * inOrderSuccessor(AVLT * );
+    
+    // Tree Traversal - visits nodes with asteroid mission ratings from smallest to largest
+    void inOrderTraversal(AVLT *, vector<pair<double, string>>& values);
+
+    // Tree Rotations
+    AVLT * rightRightRotation(AVLT * );
+    AVLT * leftLeftRotation(AVLT * );
+    AVLT * leftRightRotation(AVLT * );
+    AVLT * rightLeftRotation(AVLT * );
+};
+
 AsteroidNeighborTreeNode* addAsteroidNeighborTreeNode(AsteroidNeighborTreeNode* root, Asteroid asteroid) {
 	if (root == nullptr) {
 		AsteroidNeighborTreeNode* newNode = new AsteroidNeighborTreeNode();
