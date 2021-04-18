@@ -170,6 +170,125 @@ public:
     AVLT * rightLeftRotation(AVLT * );
 };
 
+// return height of tree
+int AVLTree::getHeight(AVLT* tree) {
+    int treeHeight = 0;
+    if (tree != nullptr) {
+        int leftTreeHeight = getHeight(tree->left);
+        int rightTreeHeight = getHeight(tree->right);
+        int maxTreeHeight = max(leftTreeHeight, rightTreeHeight);
+        treeHeight = maxTreeHeight + 1;
+    }
+    return treeHeight;
+}
+
+// return balance factor of tree
+int AVLTree::getBalanceFactor(AVLT* tree) {
+    int leftTreeHeight = getHeight(tree->left);
+    int rightTreeHeight = getHeight(tree->right);
+    int balanceFactor = leftTreeHeight - rightTreeHeight;
+    return balanceFactor;
+}
+
+AVLT* AVLTree::rightRightRotation(AVLT* parent) {
+    AVLT* tree;
+    tree = parent->right;
+    parent->right = tree->left;
+    tree->left = parent;
+    return tree;
+}
+
+AVLT* AVLTree::leftLeftRotation(AVLT* parent) {
+    AVLT* tree;
+    tree = parent->left;
+    parent->left = tree->right;
+    tree->right = parent;
+    return tree;
+}
+
+AVLT* AVLTree::leftRightRotation(AVLT* parent) {
+    AVLT* t;
+    t = parent->left;
+    parent->left = rightRightRotation(t);
+    return leftLeftRotation(parent);
+}
+
+AVLT* AVLTree::rightLeftRotation(AVLT* parent) {
+    AVLT * tree;
+    tree = parent->right;
+    parent->right = leftLeftRotation(tree);
+    return rightRightRotation(parent);
+}
+
+AVLT* AVLTree::balanceTree(AVLT* tree) {
+    int balanceFactor = getBalanceFactor(tree);
+    if (balanceFactor > 1) {
+        if (getBalanceFactor(tree->left) > 0) {
+            tree = leftLeftRotation(tree);
+        }
+        else {
+            tree = leftRightRotation(tree);
+        }
+    }
+    else if (balanceFactor < -1) {
+        if (getBalanceFactor(tree->right) > 0) {
+            tree = rightLeftRotation(tree);
+        }
+        else {
+            tree = rightRightRotation(tree);
+        };
+    }
+    return tree;
+}
+
+void AVLTree::insertNode(AVLT* treeNode, Asteroid* ast) {
+    while(treeNode != nullptr) {
+        if(ast->missionRating < treeNode->missionRating && treeNode->left == nullptr) {
+            treeNode->left = new AVLT();
+            treeNode->left->missionRating = ast->missionRating;
+            treeNode->left->name = ast->name;
+            break;
+        }
+        else if(ast->missionRating >= treeNode->missionRating && treeNode->right == nullptr) {
+            treeNode->right = new AVLT();
+            treeNode->right->missionRating = ast->missionRating;
+            treeNode->right->name = ast->name;
+            break;
+        }
+        else if(ast->missionRating < treeNode->missionRating) {
+            treeNode = treeNode->left;
+        }
+        else if(ast->missionRating >= treeNode->missionRating) {
+            treeNode = treeNode->right;
+        }
+    }
+}
+
+AVLT* AVLTree::inOrderSuccessor(AVLT* treeNode) {
+    AVLT* parentNode;
+    while (treeNode->left != nullptr) {
+        parentNode = treeNode;
+        treeNode = treeNode->left;
+    }
+    if (treeNode->right == nullptr) {
+        parentNode->left = nullptr;
+        return treeNode;
+    }
+    else {
+        parentNode->left = treeNode->right;
+        return treeNode;
+    }
+}
+
+void AVLTree::inOrderTraversal(AVLT* tree, vector<pair<double, string>>& values) {
+    if (tree == nullptr) {
+        return;
+    }
+    inOrderTraversal(tree->left, values);
+    values.push_back(make_pair(tree->missionRating,tree->name));
+    inOrderTraversal(tree->right, values);
+}
+
 void countNearNeighbors(Asteroid* node, Asteroid& asteroid) {
 	if (node == nullptr)
 		return;
