@@ -105,6 +105,14 @@ class AsteroidNeighborTreeNode {
 		AsteroidNeighborTreeNode* rightChild;
 };
 
+// structure data type called 'AVLT' used to group the asteroid mission rating, name, and left and right children in AVL tree 
+struct AVLT {
+    double missionRating = -1;
+    string name = "";
+    struct AVLT* left;
+    struct AVLT* right;
+};
+
 AsteroidNeighborTreeNode* addAsteroidNeighborTreeNode(AsteroidNeighborTreeNode* root, Asteroid asteroid) {
 	if (root == nullptr) {
 		AsteroidNeighborTreeNode* newNode = new AsteroidNeighborTreeNode();
