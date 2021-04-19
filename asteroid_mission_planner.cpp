@@ -601,8 +601,9 @@ int main(){
 		if (count % 10000 == 0) {
 			cout << count << " asteroids loaded..." << endl;
 		}
+		//Breakpoint for loading only a subset of data, useful for development
 		if (count == 100000) {
-			break;
+		//	break;
 		}
 	}
 	asteroidReader.close();
@@ -611,7 +612,7 @@ int main(){
 	
 	cout << "Choose your mission criteria" << endl;
 	cout << "\t1) Science Mission: Asteroids with near neighbors" << endl;
-	cout << "\t2) Mining Mission: Large, metal rich easy to land on asteroids" << endl;
+	cout << "\t2) Mining Mission: Asteroids that are large and/or near earth orbit" << endl;
 	cout << "\t3) Random Mission: Assign asteroids a random mission value" << endl;
 	
 	int missionTypeChoice;
@@ -619,7 +620,7 @@ int main(){
 	rateAsteroids(asteroids, missionTypeChoice);
 
 
-	cout << "How many results do you want? [1 to 600,000]" << endl;
+	cout << "How many results do you want? [1 to " << count << "]" << endl;
 	
 	int resultCount;
 	cin >> resultCount;
@@ -644,7 +645,7 @@ int main(){
 
 	}
 	else if(algorithmTypeChoice == AVL_TREE_ALGORITHM){
-		runTreeAlgorithm(missionTypeChoice, resultCount);
+		runTreeAlgorithm(asteroids, resultCount);
 	}
 	else if(algorithmTypeChoice == HEAP_ALGORITHM){
 		runHeapAlgorithm(asteroids, resultCount);
